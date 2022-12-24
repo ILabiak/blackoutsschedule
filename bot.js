@@ -25,7 +25,7 @@ bot.command("pic", async (ctx) => {
   await ctx.telegram.sendPhoto(868619239, { source: "schedules/new.png" });
 });
 
-const job = schedule.scheduleJob("*/20 * * * * *", async function () {
+const job = schedule.scheduleJob("* */5 * * * *", async function () {
   //every 20 seconds
   await parser.parseSchedule();
   const compareSchedules = await parser.comparePics();
