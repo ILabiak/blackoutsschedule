@@ -1,0 +1,24 @@
+{
+  "name": "blackoutsschedule",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "node-schedule": "^2.1.0",
+    "telegraf": "^3.39.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ILabiak/blackoutsschedule.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ILabiak/blackoutsschedule/issues"
+  },
+  "homepage": "https://github.com/ILabiak/blackoutsschedule#readme"
+}
