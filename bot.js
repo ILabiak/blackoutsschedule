@@ -6,6 +6,7 @@ const session = require("telegraf/session");
 const schedule = require("node-schedule");
 const chats = require("./chatids.json");
 const fs = require("fs");
+const parser = require("./parse");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start(async (ctx) => {
@@ -20,26 +21,37 @@ bot.start(async (ctx) => {
   bot.telegram.sendMessage(868619239, "test");
 });
 
+bot.command("pic", async (ctx) => {
+  await ctx.telegram.sendPhoto(868619239, { source: "schedules/new.png" });
+});
+
 const job = schedule.scheduleJob("*/20 * * * * *", async function () {
   //every 20 seconds
-  for (let id of chats) {
-    try {
-      await bot.telegram.sendMessage(id, "test");
-    } catch (err) {
-      if (err.code === 403) {
-        //delete chatID
-        console.log('error found')
-        const index = chats.indexOf(id);
-        if (index > -1) {
-          chats.splice(index, 1);
-          await fs.writeFile("./chatids.json", JSON.stringify(chats), (err) =>
-            console.log(err)
-          );
+  await parser.parseSchedule();
+  const compareSchedules = await parser.comparePics();
+  if (!compareSchedules) {
+    for (let id of chats) {
+      try {
+        await ctx.telegram.sendPhoto(id, { source: "schedules/new.png" });
+      } catch (err) {
+        if (err.code === 403) {
+          //delete chatID
+          console.log("error found");
+          const index = chats.indexOf(id);
+          if (index > -1) {
+            chats.splice(index, 1);
+            await fs.writeFile("./chatids.json", JSON.stringify(chats), (err) =>
+              console.log(err)
+            );
+          }
+          return;
         }
-        return;
+        console.log(err);
       }
-      console.log(err);
     }
+  }
+  else {
+    console.log('still same schedule')
   }
 });
 

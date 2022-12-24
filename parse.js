@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const puppeteer = require("puppeteer");
+const looksSame = require("looks-same");
 
 async function parseSchedule() {
   const browser = await puppeteer.launch({ headless: true });
@@ -21,7 +22,7 @@ async function parseSchedule() {
   if (fs.existsSync("schedules/new.png")) {
     fs.rename("schedules/new.png", "schedules/old.png", (err) => {
       if (err) {
-        console.log(err);
+        return console.log(err);
       }
     });
   }
@@ -36,10 +37,17 @@ async function parseSchedule() {
   return 1;
 }
 
-(async () => {
-  await parseSchedule();
-})();
+async function comparePics() {
+  const { equal } = await looksSame("schedules/old.png", "schedules/new.png");
+  return equal;
+}
+
+// (async () => {
+//   //   await parseSchedule();
+//   console.log(await comparePics());
+// })();
 
 module.exports = {
   parseSchedule,
+  comparePics,
 };
