@@ -18,14 +18,14 @@ bot.start(async (ctx) => {
     );
   }
   ctx.reply("Цей бот присилає оновлення графіку відключень Чернівціобленерго");
-  bot.telegram.sendMessage(868619239, "test");
 });
 
 bot.command("pic", async (ctx) => {
+  await parser.parseSchedule();
   await ctx.telegram.sendPhoto(868619239, { source: "schedules/new.png" });
 });
 
-const job = schedule.scheduleJob("* */5 * * * *", async function () {
+const job = schedule.scheduleJob("*/5 * * * *", async function () {
   //every 20 seconds
   await parser.parseSchedule();
   const compareSchedules = await parser.comparePics();
@@ -49,9 +49,8 @@ const job = schedule.scheduleJob("* */5 * * * *", async function () {
         console.log(err);
       }
     }
-  }
-  else {
-    console.log('still same schedule')
+  } else {
+    console.log("still same schedule");
   }
 });
 
@@ -59,10 +58,6 @@ bot.use(session());
 bot.catch((err) => {
   console.log(err);
 });
-
-// const job = schedule.scheduleJob('/10 * * * * *', function(){
-
-//   });
 
 bot.launch();
 bot.on("document", async (ctx) => {
