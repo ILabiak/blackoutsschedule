@@ -29,10 +29,11 @@ const job = schedule.scheduleJob("*/5 * * * *", async function () {
   //every 20 seconds
   await parser.parseSchedule();
   const compareSchedules = await parser.comparePics();
+  console.log('compare: '+compareSchedules + '\n')
   if (!compareSchedules) {
     for (let id of chats) {
       try {
-        await ctx.telegram.sendPhoto(id, { source: "schedules/new.png" });
+        await bot.telegram.sendPhoto(id, { source: "schedules/new.png" });
       } catch (err) {
         if (err.code === 403) {
           //delete chatID

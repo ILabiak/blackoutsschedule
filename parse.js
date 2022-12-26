@@ -8,7 +8,12 @@ async function parseSchedule() {
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
-  await page.goto("https://oblenergo.cv.ua/shutdowns/");
+  try {
+    await page.goto("https://oblenergo.cv.ua/shutdowns/");
+  } catch (err) {
+    console.log(err);
+    return;
+  }
 
   const el = await page.waitForSelector("#gav-image");
 
