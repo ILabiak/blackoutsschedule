@@ -33,7 +33,7 @@ const job = schedule.scheduleJob("*/5 * * * *", async function () {
   const compareSchedules = await parser.comparePics();
   if (!compareSchedules) {
     console.log("Sending schedule: " + new Date() + "\n");
-    console.dir('compareSchedules value ' + compareSchedules); //for debug
+    // console.dir('compareSchedules value ' + compareSchedules); //for debug
     for (let id of chats) {
       try {
         await bot.telegram.sendPhoto(id, { source: "schedules/new.png" });
