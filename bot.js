@@ -21,8 +21,10 @@ bot.start(async (ctx) => {
 });
 
 bot.command("schedule", async (ctx) => {
-  await parser.parseSchedule();
-  await ctx.telegram.sendPhoto(ctx.update.message.chat.id, { source: "schedules/new.png" });
+  // await parser.parseSchedule();
+  await ctx.telegram.sendPhoto(ctx.update.message.chat.id, {
+    source: "schedules/new.png",
+  });
 });
 
 const job = schedule.scheduleJob("*/5 * * * *", async function () {
@@ -30,6 +32,8 @@ const job = schedule.scheduleJob("*/5 * * * *", async function () {
   await parser.parseSchedule();
   const compareSchedules = await parser.comparePics();
   if (!compareSchedules) {
+    console.log("Sending schedule: " + new Date() + "\n");
+    console.dir('compareSchedules value ' + compareSchedules); //for debug
     for (let id of chats) {
       try {
         await bot.telegram.sendPhoto(id, { source: "schedules/new.png" });
@@ -58,3 +62,7 @@ bot.catch((err) => {
 });
 
 bot.launch();
+
+process.on("uncaughtException", function (err) {
+  console.log("Caught exception: ", err);
+});

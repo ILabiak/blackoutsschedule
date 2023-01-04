@@ -43,14 +43,19 @@ async function parseSchedule() {
   return 1;
 }
 
-// Can use that istead https://github.com/rsmbl/Resemble.js
 async function comparePics() {
+  // console.log(
+  //   "files exist: new.png " +
+  //     fs.existsSync("schedules/new.png") +
+  //     "\n old.png " +
+  //     fs.existsSync("schedules/old.png")
+  // );
   if (
     fs.existsSync("schedules/new.png") &&
     fs.existsSync("schedules/old.png")
   ) {
     const { equal, diffBounds, diffClusters } = await looksSame(
-      "schedules/1.png",
+      "schedules/new.png",
       "schedules/old.png",
       { tolerance: 5 }
     );
@@ -67,11 +72,18 @@ async function comparePics() {
         ignoreAntialiasing: true, // ignore antialising by default
         ignoreCaret: true, // ignore caret by default
       });
-      console.log('Images are different. Difference file: ' + diffFilePath + '\n' + new Date())
+      console.log(
+        "Images are different. Difference file: " +
+          diffFilePath +
+          "\n" +
+          new Date()
+      );
     }
+    // console.log("returning equal parameter.");
     return equal;
   }
-  return false;
+  // console.log("just returning true");
+  return true;
 }
 
 // (async () => {
