@@ -29,14 +29,14 @@ bot.command("schedule", async (ctx) => {
 
 const job = schedule.scheduleJob("*/5 * * * *", async function () {
   //every 5 minutes
-  await parser.parseSchedule();
-  const compareSchedules = await parser.comparePics();
+  const newSchedule = await parser.parseSchedule();
+  const compareSchedules = await parser.compareSchedules(newSchedule);
   if (!compareSchedules) {
+    fs.writeFileSync('schedule.json', JSON.stringify(newSchedule))
     console.log("Sending schedule: " + new Date() + "\n");
-    // console.dir('compareSchedules value ' + compareSchedules); //for debug
     for (let id of chats) {
       try {
-        await bot.telegram.sendPhoto(id, { source: "schedules/new.png" });
+        // await bot.telegram.sendPhoto(id, { source: "schedules/new.png" });
       } catch (err) {
         if (err.code === 403) {
           //delete chatID
