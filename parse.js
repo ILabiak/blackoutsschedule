@@ -1,95 +1,69 @@
 "use strict";
 
 const fs = require("fs");
-const puppeteer = require("puppeteer");
-const looksSame = require("looks-same");
+// const puppeteer = require("puppeteer");
+// const looksSame = require("looks-same");
+const axios = require("axios");
+const cheerio = require("cheerio");
 global.crypto = require("crypto");
 
-async function parseSchedule() {
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-
+const getHTML = async (url) => {
   try {
-    await page.goto("https://oblenergo.cv.ua/shutdowns/");
+    const { data } = await axios.get(url);
+    // console.dir(data)
+    return cheerio.load(data);
   } catch (err) {
-    console.log(err);
+    // console.log('axios err', err)
     return;
   }
+};
 
-  const el = await page.waitForSelector("#gav-image");
+async function parseSchedule() {
+  const $ = await getHTML("https://oblenergo.cv.ua/shutdowns/");
+  if ($ === undefined) return;
 
-  let imageHref = await page.evaluate((sel) => {
-    return document.querySelector(sel).getAttribute("src").replace("/", "");
-  }, "#gav-image");
+  //get time array
+  let timeArray = [];
+  const pElement = $("#gsv > div > p:nth-child(1)");
 
-  let viewSource = await page.goto(
-    "https://oblenergo.cv.ua/shutdowns/" + imageHref
-  );
-  if (fs.existsSync("schedules/new.png")) {
-    fs.rename("schedules/new.png", "schedules/old.png", (err) => {
-      if (err) {
-        return console.log(err);
-      }
-    });
-  }
-  fs.writeFile("schedules/new.png", await viewSource.buffer(), function (err) {
-    if (err) {
-      return console.log(err);
-    }
-    console.log("The file was saved!");
+  pElement.find("u b").each((i, elem) => {
+    const time = $(elem).text().trim();
+    timeArray.push(time);
   });
+  // console.log(timeArray);
 
-  browser.close();
-  return 1;
+  // [
+  //   '00:00', '01:00', '02:00',
+  //   '03:00', '04:00', '05:00',
+  //   '06:00', '07:00', '08:00',
+  //   '09:00', '10:00', '11:00',
+  //   '12:00', '13:00', '14:00',
+  //   '15:00', '16:00', '17:00',
+  //   '18:00', '19:00', '20:00',
+  //   '21:00', '22:00', '23:00',
+  //   '00:00'
+  // ]
+
+  // get groups schedule data
+  const result = {
+    time: timeArray,
+    schedules: [],
+  };
+  $('[id^="inf"]').each(function (i, element) {
+    const schedule = $(element).text().split("");
+    result.schedules.push({
+      id: parseInt($(element).attr("data-id")),
+      schedule: schedule,
+    });
+  });
+  console.log(result);
 }
 
-async function comparePics() {
-  // console.log(
-  //   "files exist: new.png " +
-  //     fs.existsSync("schedules/new.png") +
-  //     "\n old.png " +
-  //     fs.existsSync("schedules/old.png")
-  // );
-  if (
-    fs.existsSync("schedules/new.png") &&
-    fs.existsSync("schedules/old.png")
-  ) {
-    const { equal, diffBounds, diffClusters } = await looksSame(
-      "schedules/new.png",
-      "schedules/old.png",
-      { tolerance: 5 }
-    );
-    if (!equal) {
-      let diffFilePath = "schedules/" + crypto.randomUUID() + ".png";
-      await looksSame.createDiff({
-        reference: "schedules/new.png",
-        current: "schedules/old.png",
-        diff: diffFilePath,
-        highlightColor: "#ff00ff", // color to highlight the differences
-        strict: false, // strict comparsion
-        tolerance: 5,
-        antialiasingTolerance: 0,
-        ignoreAntialiasing: true, // ignore antialising by default
-        ignoreCaret: true, // ignore caret by default
-      });
-      console.log(
-        "Images are different. Difference file: " +
-          diffFilePath +
-          "\n" +
-          new Date()
-      );
-    }
-    // console.log("returning equal parameter.");
-    return equal;
-  }
-  // console.log("just returning true");
-  return true;
-}
+async function compareSchedules() {}
 
-// (async () => {
-//   // await parseSchedule();
-//     console.log(await comparePics());
-// })();
+(async () => {
+  await parseSchedule();
+})();
 
 module.exports = {
   parseSchedule,
