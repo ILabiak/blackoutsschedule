@@ -1,7 +1,7 @@
 "use strict";
 
 const fs = require("fs");
-const path = require("path")
+const path = require("path");
 const puppeteer = require("puppeteer");
 const axios = require("axios");
 const cheerio = require("cheerio");
@@ -18,9 +18,28 @@ const getHTML = async (url) => {
   }
 };
 
-async function parseSchedule(url = "https://oblenergo.cv.ua/shutdowns/") {
-  const $ = await getHTML(url);
+async function parseSchedules(url = "https://oblenergo.cv.ua/shutdowns/") {
+  let $ = await getHTML(url);
   if ($ === undefined) return;
+  let resultsArr = []
+  const todaySchedule = await parseSchedule($)
+  todaySchedule.url = url;
+  resultsArr.push(todaySchedule)
+
+  const nextDate = $("#gsv_t > div > a");
+  if (nextDate.length > 0) {
+    const newUrl = "https://oblenergo.cv.ua" + nextDate.attr("href");
+    $ = await getHTML(newUrl);
+    const tommorowSchedule = await parseSchedule($)
+    tommorowSchedule.url = newUrl
+    resultsArr.push(tommorowSchedule)
+  }
+  // console.log(resultsArr)
+  return resultsArr;
+}
+
+async function parseSchedule(htmlData) {
+  const $ = htmlData
 
   //get date
   const date = $("#gsv_t > div > b").text();
@@ -53,16 +72,16 @@ async function parseSchedule(url = "https://oblenergo.cv.ua/shutdowns/") {
 }
 
 async function compareSchedules(newSchedule) {
-  let schedulePath = path.join('schedules', `${newSchedule?.date}.json`)
-  if(fs.existsSync(schedulePath)){
+  let schedulePath = path.join("schedules", `${newSchedule?.date}.json`);
+  if (fs.existsSync(schedulePath)) {
     const oldScheduleBuff = fs.readFileSync(schedulePath);
     const oldSchedule = JSON.parse(oldScheduleBuff);
     return JSON.stringify(oldSchedule) === JSON.stringify(newSchedule);
   }
-  return false
+  return false;
 }
 
-async function getSchedulePic() {
+async function getSchedulePic(url, path = "schedule.png") {
   const browser = await puppeteer.launch({
     headless: true,
   });
@@ -73,7 +92,7 @@ async function getSchedulePic() {
     height: 1080,
   });
   try {
-    await page.goto("https://oblenergo.cv.ua/shutdowns/");
+    await page.goto(url);
     const tableTitle = await page.waitForSelector("#gsv_h");
     const tableTitlePos = await tableTitle.boundingBox();
     const table = await page.$("#gsv");
@@ -81,7 +100,7 @@ async function getSchedulePic() {
     const height = tablePos.y - tableTitlePos.y + tablePos.height;
 
     await page.screenshot({
-      path: "schedule.png",
+      path: path,
       clip: {
         x: tableTitlePos.x,
         y: tableTitlePos.y,
@@ -99,7 +118,8 @@ async function getSchedulePic() {
 }
 
 (async () => {
-  // await parseSchedule();
+  // const schedule = await parseSchedules();
+  // console.log(schedule)
   // const newSchedule = JSON.parse(fs.readFileSync("schedule2.json"));
   // console.log(await compareSchedules(newSchedule));
   // console.log(await getSchedulePic())
@@ -107,7 +127,7 @@ async function getSchedulePic() {
 })();
 
 module.exports = {
-  parseSchedule,
+  parseSchedules,
   compareSchedules,
   getSchedulePic,
 };

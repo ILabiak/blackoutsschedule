@@ -10,6 +10,7 @@ const chats = require("./chatsInfo.json");
 const fs = require("fs");
 const path = require("path");
 const parser = require("./parse");
+const { caption } = require("telegraf/extra");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start(async (ctx) => {
@@ -98,38 +99,103 @@ bot.command("test", async (ctx) => {
 
 async function checkSchedule() {
   //every 5 minutes
-  const newSchedule = await parser.parseSchedule();
-  const compareSchedules = await parser.compareSchedules(newSchedule);
-  if (!compareSchedules) {
-    fs.writeFileSync(
-      path.join("schedules", `${newSchedule?.date}.json`),
-      JSON.stringify(newSchedule)
-    );
-    console.log("Sending schedule: " + new Date() + "\n");
-    for (let chat of chats) {
-      try {
-        const getSchedule = await parser.getSchedulePic();
-        if (getSchedule)
-          await bot.telegram.sendPhoto(chat.id, { source: "schedule.png" });
-      } catch (err) {
-        if (err.code === 403) {
-          //delete chatID
-          console.log("error found");
-          const index = chats.indexOf(id);
-          if (index > -1) {
-            chats.splice(index, 1);
-            await fs.writeFile("./chatids.json", JSON.stringify(chats), (err) =>
-              console.log(err)
-            );
-          }
-          return;
-        }
-        console.log(err);
+  const newSchedules = await parser.parseSchedules();
+  for (let newSchedule of newSchedules) {
+    const compareSchedules = await parser.compareSchedules(newSchedule);
+    if (!compareSchedules) {
+      fs.writeFileSync(
+        path.join("schedules", `${newSchedule?.date}.json`),
+        JSON.stringify(newSchedule)
+      );
+      console.log("Sending schedule: " + new Date() + "\n");
+      const imagePath = path.join("schedules", `${newSchedule?.date}.png`);
+      const getSchedule = await parser.getSchedulePic(
+        newSchedule?.url,
+        imagePath
+      );
+      if (!getSchedule) {
+        console.log("some error during getSchedulePic function");
       }
+      for (let chat of chats) {
+        try {
+          if (chat?.group) {
+            // console.log(chat)
+            const message = await formatScheduleOutput(
+              path.join("schedules", `${newSchedule?.date}.json`),
+              chat.group
+            );
+            // await bot.telegram.sendMessage(chat.id, message);
+            await bot.telegram.sendPhoto(
+              chat.id,
+              { source: imagePath },
+              { caption: message }
+            );
+          } else {
+            await bot.telegram.sendPhoto(chat.id, { source: imagePath });
+          }
+        } catch (err) {
+          if (err.code === 403) {
+            //delete chatID
+            console.log("error found");
+            const index = chats.indexOf(id);
+            if (index > -1) {
+              chats.splice(index, 1);
+              await fs.writeFile(
+                "./chatids.json",
+                JSON.stringify(chats),
+                (err) => console.log(err)
+              );
+            }
+            return;
+          }
+          console.log(err);
+        }
+      }
+    } else {
+      console.log("same");
     }
-  } else {
-    console.log("same");
   }
+}
+
+async function formatScheduleOutput(schedulePath, group) {
+  let resultStr = "";
+  const fileDataBuff = fs.readFileSync(schedulePath);
+  const schedule = JSON.parse(fileDataBuff);
+  resultStr += "Зміна графіку.\n";
+  resultStr += "Графік на " + schedule.date + "\nГрупа " + group + "\n";
+  const groupIndex = schedule.schedules.findIndex((el) => el.id == group);
+  if (groupIndex >= 0) {
+    let groupSchedule = schedule.schedules[groupIndex].schedule;
+    let timeArray = schedule.time;
+    let scheduleStr = await combineArrays(timeArray, groupSchedule);
+    resultStr += scheduleStr;
+  }
+  return resultStr;
+}
+
+async function combineArrays(timeArray, groupSchedule) {
+  let resultArray = [];
+  let startIndex = 0;
+  let currentType = groupSchedule[0];
+
+  for (let i = 1; i < groupSchedule.length; i++) {
+    if (groupSchedule[i] !== currentType) {
+      await resultArray.push(
+        `${timeArray[startIndex]}-${timeArray[i]} ${currentType}`
+      );
+      startIndex = i;
+      currentType = groupSchedule[i];
+    }
+  }
+
+  await resultArray.push(
+    `${timeArray[startIndex]}-${timeArray[groupSchedule.length]} ${currentType}`
+  );
+  let result = resultArray
+    .join("\n")
+    .replaceAll("з", "✅")
+    .replaceAll("в", "❌");
+  return result;
 }
 
 bot.use(session());
@@ -138,6 +204,10 @@ bot.catch((err) => {
 });
 
 bot.launch();
+
+// (async() => {
+// await formatScheduleOutput(path.join("schedules", `29.01.2023.json`),6)
+// })()
 
 process.on("uncaughtException", function (err) {
   console.log("Caught exception: ", err);
