@@ -1,6 +1,7 @@
 "use strict";
 
 const fs = require("fs");
+const path = require("path")
 const puppeteer = require("puppeteer");
 const axios = require("axios");
 const cheerio = require("cheerio");
@@ -17,9 +18,12 @@ const getHTML = async (url) => {
   }
 };
 
-async function parseSchedule() {
-  const $ = await getHTML("https://oblenergo.cv.ua/shutdowns/");
+async function parseSchedule(url = "https://oblenergo.cv.ua/shutdowns/") {
+  const $ = await getHTML(url);
   if ($ === undefined) return;
+
+  //get date
+  const date = $("#gsv_t > div > b").text();
 
   //get time array
   let timeArray = [];
@@ -31,20 +35,9 @@ async function parseSchedule() {
   });
   // console.log(timeArray);
 
-  // [
-  //   '00:00', '01:00', '02:00',
-  //   '03:00', '04:00', '05:00',
-  //   '06:00', '07:00', '08:00',
-  //   '09:00', '10:00', '11:00',
-  //   '12:00', '13:00', '14:00',
-  //   '15:00', '16:00', '17:00',
-  //   '18:00', '19:00', '20:00',
-  //   '21:00', '22:00', '23:00',
-  //   '00:00'
-  // ]
-
   // get groups schedule data
   const result = {
+    date: date,
     time: timeArray,
     schedules: [],
   };
@@ -55,13 +48,18 @@ async function parseSchedule() {
       schedule: schedule,
     });
   });
-  console.log(JSON.stringify(result, 0, 2));
+  // console.log(JSON.stringify(result, 0, 2));
+  return result;
 }
 
 async function compareSchedules(newSchedule) {
-  const oldScheduleBuff = fs.readFileSync("schedule.json");
-  const oldSchedule = JSON.parse(oldScheduleBuff);
-  return JSON.stringify(oldSchedule) === JSON.stringify(newSchedule);
+  let schedulePath = path.join('schedules', `${newSchedule?.date}.json`)
+  if(fs.existsSync(schedulePath)){
+    const oldScheduleBuff = fs.readFileSync(schedulePath);
+    const oldSchedule = JSON.parse(oldScheduleBuff);
+    return JSON.stringify(oldSchedule) === JSON.stringify(newSchedule);
+  }
+  return false
 }
 
 async function getSchedulePic() {
@@ -76,19 +74,10 @@ async function getSchedulePic() {
   });
   try {
     await page.goto("https://oblenergo.cv.ua/shutdowns/");
-  } catch (err) {
-    console.log(err);
-    await browser.close();
-    return false;
-  }
-
-  try {
     const tableTitle = await page.waitForSelector("#gsv_h");
     const tableTitlePos = await tableTitle.boundingBox();
     const table = await page.$("#gsv");
     const tablePos = await table.boundingBox();
-    console.log(tableTitlePos);
-    console.log(tablePos);
     const height = tablePos.y - tableTitlePos.y + tablePos.height;
 
     await page.screenshot({
@@ -105,7 +94,6 @@ async function getSchedulePic() {
     await browser.close();
     return false;
   }
-
   await browser.close();
   return true;
 }
@@ -114,10 +102,12 @@ async function getSchedulePic() {
   // await parseSchedule();
   // const newSchedule = JSON.parse(fs.readFileSync("schedule2.json"));
   // console.log(await compareSchedules(newSchedule));
-  await getSchedulePic();
+  // console.log(await getSchedulePic())
+  // console.log('done')
 })();
 
 module.exports = {
   parseSchedule,
   compareSchedules,
+  getSchedulePic,
 };

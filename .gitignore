@@ -108,3 +108,7 @@ chatids.json
 *.html
 
 test.js
+
+schedules/*.json
+
+*.png
