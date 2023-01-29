@@ -95,7 +95,7 @@ bot.command("test", async (ctx) => {
   await checkSchedule();
 });
 
-// const job = schedule.scheduleJob("*/5 * * * *", checkSchedule);
+const job = schedule.scheduleJob("*/5 * * * *", checkSchedule);
 
 async function checkSchedule() {
   //every 5 minutes
