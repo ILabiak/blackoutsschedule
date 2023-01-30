@@ -21,25 +21,25 @@ const getHTML = async (url) => {
 async function parseSchedules(url = "https://oblenergo.cv.ua/shutdowns/") {
   let $ = await getHTML(url);
   if ($ === undefined) return;
-  let resultsArr = []
-  const todaySchedule = await parseSchedule($)
+  let resultsArr = [];
+  const todaySchedule = await parseSchedule($);
   todaySchedule.url = url;
-  resultsArr.push(todaySchedule)
+  resultsArr.push(todaySchedule);
 
   const nextDate = $("#gsv_t > div > a");
   if (nextDate.length > 0) {
     const newUrl = "https://oblenergo.cv.ua" + nextDate.attr("href");
     $ = await getHTML(newUrl);
-    const tommorowSchedule = await parseSchedule($)
-    tommorowSchedule.url = newUrl
-    resultsArr.push(tommorowSchedule)
+    const tommorowSchedule = await parseSchedule($);
+    tommorowSchedule.url = newUrl;
+    resultsArr.push(tommorowSchedule);
   }
   // console.log(resultsArr)
   return resultsArr;
 }
 
 async function parseSchedule(htmlData) {
-  const $ = htmlData
+  const $ = htmlData;
 
   //get date
   const date = $("#gsv_t > div > b").text();
@@ -81,7 +81,7 @@ async function compareSchedules(newSchedule) {
   return false;
 }
 
-async function getSchedulePic(url, path = "schedule.png") {
+async function getSchedulePic(url, path) {
   const browser = await puppeteer.launch({
     headless: true,
   });
@@ -98,7 +98,6 @@ async function getSchedulePic(url, path = "schedule.png") {
     const table = await page.$("#gsv");
     const tablePos = await table.boundingBox();
     const height = tablePos.y - tableTitlePos.y + tablePos.height;
-
     await page.screenshot({
       path: path,
       clip: {
@@ -111,15 +110,19 @@ async function getSchedulePic(url, path = "schedule.png") {
   } catch (err) {
     console.log(err);
     await browser.close();
-    return false;
+    return;
   }
   await browser.close();
-  return true;
+  return path;
 }
 
 (async () => {
   // const schedule = await parseSchedules();
   // console.log(schedule)
+  await getSchedulePic(
+    "https://oblenergo.cv.ua/shutdowns/",
+    "schedules/temp.png"
+  );
   // const newSchedule = JSON.parse(fs.readFileSync("schedule2.json"));
   // console.log(await compareSchedules(newSchedule));
   // console.log(await getSchedulePic())

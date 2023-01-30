@@ -83,11 +83,10 @@ bot.action(/^\d+$/, async (ctx) => {
 });
 
 bot.command("schedule", async (ctx) => {
-  if (!fs.existsSync("schedule.png")) {
-    await parser.getSchedulePic();
-  }
+  const schedule = await parser.getSchedulePic('https://oblenergo.cv.ua/shutdowns/', 'schedules/temp.png')
+  
   await ctx.telegram.sendPhoto(ctx.update.message.chat.id, {
-    source: "schedule.png",
+    source: 'schedules/temp.png',
   });
 });
 
@@ -109,10 +108,12 @@ async function checkSchedule() {
       );
       console.log("Sending schedule: " + new Date() + "\n");
       const imagePath = path.join("schedules", `${newSchedule?.date}.png`);
+      console.log('Getting image')
       const getSchedule = await parser.getSchedulePic(
         newSchedule?.url,
         imagePath
       );
+      console.log('Got image')
       if (!getSchedule) {
         console.log("some error during getSchedulePic function");
       }

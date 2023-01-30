@@ -10,7 +10,7 @@
     "looks-same": "^8.1.0",
     "node-schedule": "^2.1.0",
     "nodemon": "^2.0.20",
-    "puppeteer": "^19.6.2",
+    "puppeteer": "^19.4.1",
     "telegraf": "^3.39.0"
   },
   "scripts": {
